@@ -76,14 +76,14 @@ class V2EXCrawler(BaseCrawler):
 
     async def get_latest_topic_ids(self, limit: int = 100) -> list[str]:
         """Discover new topic IDs from the latest list."""
-        data = await self._request("/topics/latest.json")
+        data = await self._request("/topics/latest.json", nodely=True)
         if not data:
             return []
         return [str(item["id"]) for item in data[:limit]]
 
     async def get_hot_topic_ids(self) -> list[str]:
         """Get currently hot topic IDs."""
-        data = await self._request("/topics/hot.json")
+        data = await self._request("/topics/hot.json", nodely=True)
         if not data:
             return []
         return [str(item["id"]) for item in data]
@@ -93,7 +93,8 @@ class V2EXCrawler(BaseCrawler):
     ) -> list[str]:
         """Get topic IDs from a specific node (for bulk seeding)."""
         data = await self._request(
-            f"/topics/show.json", params={"node_name": node_name, "p": page}
+            f"/topics/show.json", params={"node_name": node_name, "p": page},
+            nodely=True,
         )
         if not data:
             return []
@@ -182,21 +183,25 @@ class V2EXCrawler(BaseCrawler):
                 if len(uncrawled) >= max_new_topics * 2:
                     break
 
+        print(f"  discovered {len(uncrawled)} new topics to crawl")
+
         # 5. Crawl each topic
-        for topic_id in uncrawled:
+        for i, topic_id in enumerate(uncrawled):
             try:
                 topic, replies = await self.get_topic_with_replies(topic_id)
 
-                # Save to JSONL
                 self._append_topic(topic)
                 for reply in replies:
                     self._append_reply(reply)
 
-                # Mark done
                 self._mark_crawled(topic_id, "done")
                 progress.topics_done += 1
                 progress.replies_saved += len(replies)
                 progress.last_topic_id = topic_id
+
+                if (i + 1) % 10 == 0:
+                    print(f"  progress: {i + 1}/{len(uncrawled)} "
+                          f"(replies={progress.replies_saved})")
 
                 await self._delay()
 
@@ -265,13 +270,16 @@ class V2EXCrawler(BaseCrawler):
         )
         self.db.commit()
 
-    async def _request(self, endpoint: str, params: dict | None = None) -> dict | list | None:
+    async def _request(
+        self, endpoint: str, params: dict | None = None, nodely: bool = False
+    ) -> dict | list | None:
         """Unified HTTP request with retry + backoff."""
         url = f"{self.BASE}{endpoint}"
 
         for attempt in range(4):
             try:
-                await self._delay()
+                if not nodely:
+                    await self._delay()
                 resp = await self.client.get(url, params=params)
 
                 if resp.status_code == 429:
