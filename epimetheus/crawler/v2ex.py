@@ -88,6 +88,17 @@ class V2EXCrawler(BaseCrawler):
             return []
         return [str(item["id"]) for item in data]
 
+    async def get_node_topic_ids(
+        self, node_name: str, page: int = 1
+    ) -> list[str]:
+        """Get topic IDs from a specific node (for bulk seeding)."""
+        data = await self._request(
+            f"/topics/show.json", params={"node_name": node_name, "p": page}
+        )
+        if not data:
+            return []
+        return [str(item["id"]) for item in data]
+
     async def get_topic_with_replies(self, topic_id: str) -> tuple[Topic, list[Reply]]:
         """Fetch topic detail + replies (two API calls)."""
         data = await self._request(f"/topics/show.json?id={topic_id}")
@@ -132,32 +143,44 @@ class V2EXCrawler(BaseCrawler):
 
         return topic, replies
 
+    POPULAR_NODES = [
+        "programmer", "create", "share", "career", "coding",
+        "python", "javascript", "go", "apple", "linux",
+        "hardware", "cloud", "ml", "life", "qna",
+    ]
+
     async def crawl_incremental(self, max_new_topics: int = 200) -> CrawlProgress:
         """Main entry: crawl new topics since last run."""
         progress = CrawlProgress(source="v2ex")
 
-        # 1. Discover new topic IDs
-        new_ids = await self.get_latest_topic_ids(limit=max_new_topics)
+        uncrawled: list[str] = []
 
-        # 2. Filter to truly new (not in DB)
-        uncrawled = []
+        # 1. Latest topics (high freshness)
+        new_ids = await self.get_latest_topic_ids(limit=max_new_topics)
         for tid in new_ids:
             if not self._is_crawled(tid):
                 uncrawled.append(tid)
             else:
                 progress.topics_skipped += 1
 
-        if not uncrawled:
-            return progress
-
-        # 3. Also check hot topics (quality signal — public discussion)
+        # 2. Hot topics (high quality)
         hot_ids = await self.get_hot_topic_ids()
         for tid in hot_ids:
             if tid not in uncrawled and not self._is_crawled(tid):
                 uncrawled.append(tid)
 
-        # 4. Dedup
-        uncrawled = list(dict.fromkeys(uncrawled))
+        # 3. Popular nodes (bulk seed — page 1-3 of each node)
+        if len(uncrawled) < max_new_topics:
+            for node in self.POPULAR_NODES:
+                for page in range(1, 4):
+                    if len(uncrawled) >= max_new_topics * 2:
+                        break
+                    node_ids = await self.get_node_topic_ids(node, page=page)
+                    for tid in node_ids:
+                        if tid not in uncrawled and not self._is_crawled(tid):
+                            uncrawled.append(tid)
+                if len(uncrawled) >= max_new_topics * 2:
+                    break
 
         # 5. Crawl each topic
         for topic_id in uncrawled:
