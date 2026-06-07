@@ -1,0 +1,45 @@
+services:
+  epimetheus:
+    build: .
+    container_name: epimetheus-crawler
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - DATA_DIR=/app/data
+      - CRAWL_DELAY_MIN=${CRAWL_DELAY_MIN:-1.5}
+      - CRAWL_DELAY_MAX=${CRAWL_DELAY_MAX:-3.0}
+      - REDDIT_CLIENT_ID=${REDDIT_CLIENT_ID:-}
+      - REDDIT_CLIENT_SECRET=${REDDIT_CLIENT_SECRET:-}
+    volumes:
+      - ./data:/app/data
+    command: >
+      epimetheus crawl
+      --source ${CRAWL_SOURCE:-v2ex}
+      --max ${CRAWL_MAX_PER_RUN:-500}
+      --loop
+      --loop-interval ${CRAWL_LOOP_INTERVAL:-3600}
+
+  # Optional: run Reddit crawler in parallel
+  epimetheus-reddit:
+    build: .
+    container_name: epimetheus-reddit
+    restart: unless-stopped
+    profiles: ["reddit"]
+    env_file:
+      - .env
+    environment:
+      - DATA_DIR=/app/data
+      - CRAWL_DELAY_MIN=${CRAWL_DELAY_MIN:-2.0}
+      - CRAWL_DELAY_MAX=${CRAWL_DELAY_MAX:-4.0}
+      - REDDIT_CLIENT_ID=${REDDIT_CLIENT_ID:-}
+      - REDDIT_CLIENT_SECRET=${REDDIT_CLIENT_SECRET:-}
+    volumes:
+      - ./data:/app/data
+    command: >
+      epimetheus crawl
+      --source reddit
+      --max ${CRAWL_MAX_PER_RUN:-200}
+      --loop
+      --loop-interval ${CRAWL_LOOP_INTERVAL:-3600}
+      --subreddits "programming,learnprogramming,ExperiencedDevs,cscareerquestions"

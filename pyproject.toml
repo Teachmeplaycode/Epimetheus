@@ -1,0 +1,35 @@
+[project]
+name = "epimetheus"
+version = "0.1.0"
+description = "Epimetheus — a terminal companion who learns how humans talk"
+requires-python = ">=3.11"
+
+dependencies = [
+    "httpx>=0.27.0",
+    "rich>=13.0.0",
+    "openai>=1.50.0",
+    "anthropic>=0.40.0",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.0.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["epimetheus*"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "ruff>=0.5.0",
+]
+
+[project.scripts]
+epimetheus = "epimetheus.main:cli"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

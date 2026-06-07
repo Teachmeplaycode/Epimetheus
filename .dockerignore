@@ -1,0 +1,43 @@
+# Git
+.git/
+.gitignore
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+eggs/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+
+# Claude
+.claude/
+
+# Firecrawl cache
+.firecrawl/
+
+# Local data (mount as volume instead)
+data/
+
+# Tests
+tests/
+
+# Docs
+docs/
+
+# Env + secrets
+.env
+.env.local
+
+# Logs
+*.txt
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

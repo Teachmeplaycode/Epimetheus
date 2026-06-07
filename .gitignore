@@ -1,0 +1,31 @@
+# Secrets
+.env
+.env.local
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Runtime data
+data/
+
+# IDE
+.vscode/
+.idea/
+
+# Claude Code
+.claude/
+
+# Firecrawl cache
+.firecrawl/
+
+# Session logs
+*.txt
+
+# OS junk
+.DS_Store
+Thumbs.db
