@@ -6,6 +6,7 @@ services:
     env_file:
       - .env
     environment:
+      - PYTHONUNBUFFERED=1
       - DATA_DIR=/app/data
       - CRAWL_DELAY_MIN=${CRAWL_DELAY_MIN:-1.5}
       - CRAWL_DELAY_MAX=${CRAWL_DELAY_MAX:-3.0}
@@ -29,6 +30,7 @@ services:
     env_file:
       - .env
     environment:
+      - PYTHONUNBUFFERED=1
       - DATA_DIR=/app/data
       - CRAWL_DELAY_MIN=${CRAWL_DELAY_MIN:-2.0}
       - CRAWL_DELAY_MAX=${CRAWL_DELAY_MAX:-4.0}
