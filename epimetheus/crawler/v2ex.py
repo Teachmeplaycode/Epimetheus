@@ -88,12 +88,10 @@ class V2EXCrawler(BaseCrawler):
             return []
         return [str(item["id"]) for item in data]
 
-    async def get_node_topic_ids(
-        self, node_name: str, page: int = 1
-    ) -> list[str]:
-        """Get topic IDs from a specific node (for bulk seeding)."""
+    async def get_node_topic_ids(self, node_name: str) -> list[str]:
+        """Get topic IDs from a specific node."""
         data = await self._request(
-            f"/topics/show.json", params={"node_name": node_name, "p": page},
+            "/topics/show.json", params={"node_name": node_name},
             nodely=True,
         )
         if not data:
@@ -170,18 +168,13 @@ class V2EXCrawler(BaseCrawler):
             if tid not in uncrawled and not self._is_crawled(tid):
                 uncrawled.append(tid)
 
-        # 3. Popular nodes (bulk seed — page 1-3 of each node)
+        # 3. Popular nodes (variety beyond the global latest feed)
         if len(uncrawled) < max_new_topics:
             for node in self.POPULAR_NODES:
-                for page in range(1, 4):
-                    if len(uncrawled) >= max_new_topics * 2:
-                        break
-                    node_ids = await self.get_node_topic_ids(node, page=page)
-                    for tid in node_ids:
-                        if tid not in uncrawled and not self._is_crawled(tid):
-                            uncrawled.append(tid)
-                if len(uncrawled) >= max_new_topics * 2:
-                    break
+                node_ids = await self.get_node_topic_ids(node)
+                for tid in node_ids:
+                    if tid not in uncrawled and not self._is_crawled(tid):
+                        uncrawled.append(tid)
 
         print(f"  discovered {len(uncrawled)} new topics to crawl")
 
